@@ -1,0 +1,38 @@
+pipeline {
+    agent any 
+
+    options {
+        buildDiscarder(logRotator(daysToKeepStr: '30', numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Checkout Source Code') {
+            steps {
+                echo "Pulling latest resume files from GitHub..."
+                checkout scm
+            }
+        }
+
+        stage('Build PDF Artifact') {
+            steps {
+                echo "Converting Markdown to PDF using Pandoc..."
+                sh 'pandoc resume.md -o resume.pdf --from markdown --pdf-engine=xelatex -V geometry:margin=1in'
+            }
+        }
+
+        stage('Archive Artifact') {
+            steps {
+                echo "Archiving resume.pdf for download."
+                archiveArtifacts artifacts: 'resume.pdf', fingerprint: true
+            }
+        }
+    }
+    post {
+        success {
+            echo "✅ Build SUCCESS! The latest resume.pdf is ready and archived."
+        }
+        failure {
+            echo "❌ Build FAILED! Check agent logs for Pandoc errors or syntax issues in resume.md."
+        }
+    }
+}
